@@ -12,9 +12,15 @@ class Pos:
         return hash((self.x, self.y))
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y
+    def __repr__(self):
+        return '<%s, %s>' % (self.x, self.y)
+
+class Dir:
+    def __repr__(self):
+        return dir_str[self]
 
 # Create dummy singleton objects: stupid enum
-UP, DOWN, LEFT, RIGHT = all_dirs = [object() for x in range(4)]
+UP, DOWN, LEFT, RIGHT = all_dirs = [Dir() for x in range(4)]
 dir_vector = {
     UP: Pos(0, -1),
     DOWN: Pos(0, 1),
@@ -22,11 +28,12 @@ dir_vector = {
     RIGHT: Pos(1, 0)
 }
 dir_str = {
-    'up': UP,
-    'down': DOWN,
-    'left': LEFT,
-    'right': RIGHT
+    UP: 'up',
+    DOWN: 'down',
+    LEFT: 'left',
+    RIGHT: 'right'
 }
+inv_dir_str = {v: k for k, v in dir_str.items()}
 
 class State:
     def __init__(self, positions, directions, goals, arrows):
@@ -124,16 +131,12 @@ class State:
                 c = self.lookup_square(pos)
                 if c is not None:
                     char = sq_table[self.directions[c]]
+                elif self.lookup_arrow(pos) is not None:
+                    char = '%'
+                elif self.lookup_goal(pos) is not None:
+                    char = '#'
                 else:
-                    c = self.lookup_arrow(pos)
-                    if c is not None:
-                        char = '%'
-                    else:
-                        c = self.lookup_goal(pos)
-                        if c is not None:
-                            char = '#'
-                        else:
-                            char = ' '
+                    char = ' '
                 print(char, end='')
             print()
 
@@ -168,14 +171,14 @@ def search(state, ply, depth):
 
     return best_score, best_moves
 
-for level in levels.levels:
-    print('Solving level "%s"' % level['name'])
+for i, level in enumerate(levels.levels):
+    print('Solving level %s: %s...' % (i, level['name']))
 
     # Do some simple transformations to match our data structures
     positions = {c: Pos(x, y) for c, [x, y] in level['positions'].items()}
-    directions = {c: dir_str[d] for c, d in level['directions'].items()}
+    directions = {c: inv_dir_str[d] for c, d in level['directions'].items()}
     goals = {c: Pos(x, y) for c, [x, y] in level['goals'].items()}
-    arrows = [[Pos(x, y), dir_str[d]] for x, y, d in level['arrows']]
+    arrows = [[Pos(x, y), inv_dir_str[d]] for x, y, d in level['arrows']]
     state = State(positions, directions, goals, arrows)
     #state.print()
 
@@ -189,3 +192,5 @@ for level in levels.levels:
             break
     else:
         print('No solution, depth=%s nodes=%s' % (depth, nodes))
+        state.print()
+        break
