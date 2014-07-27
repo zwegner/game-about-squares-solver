@@ -142,16 +142,38 @@ class State:
 
 WIN_SCORE = 100000
 
+def score_is_win(score):
+    # XXX 1000 move maximum solution length
+    return score > WIN_SCORE - 1000
+
 def eval_state(state):
-    # XXX
-    return 0
+    score = 0
+    for color in state.colors:
+        position = state.positions[color]
+        goal = state.goals[color]
+        dist = abs(position.x - goal.x) + abs(position.y - goal.y)
+        if dist == 0:
+            score += 1000
+        else:
+            score += 100 / dist
+    return score
+
+def order_colors(state, depth):
+    # Sort the different possible moves by making them and then evaluating the position
+    scores = {}
+    for color in state.colors:
+        undo = state.move(color)
+        score = eval_state(state)
+        scores[color] = score
+        state.undo(undo)
+    return sorted(state.colors, key=lambda c: -scores[c])
 
 def search(state, ply, depth):
     global nodes, hash_table
     nodes += 1
     if state.is_win():
         return WIN_SCORE - ply, []
-    elif depth == 0:
+    elif depth <= 0:
         return eval_state(state), []
 
     hash_key = (state, depth)
@@ -159,9 +181,9 @@ def search(state, ply, depth):
         return hash_table[hash_key]
 
     best_score, best_moves = -1000, None
-    for color in state.colors:
+    for rank, color in enumerate(order_colors(state, depth)):
         undo = state.move(color)
-        score, moves = search(state, ply + 1, depth - 1)
+        score, moves = search(state, ply + 1, depth - rank ** 2 - 1)
         if score > best_score:
             best_score = score
             best_moves = [color] + moves
@@ -184,10 +206,10 @@ for i, level in enumerate(levels.levels):
 
     nodes = 0
     hash_table = {}
-    for depth in range(1, 40):
+    for depth in range(4, 400, 4):
         score, moves = search(state, 0, depth)
         # XXX
-        if score > 0:
+        if score_is_win(score):
             print('Solution found! depth=%s nodes=%s\n%s' % (depth, nodes, moves))
             break
     else:
