@@ -3,7 +3,7 @@
 # Stupid converter for level data, using some global state and some vim magic
 
 colors = list(range(20))
-levels = []
+levels = {}
 
 orig_levels = 'hi hi3 order2 push stairs stairs2 lift presq sq nobrainer crosst t rotation asymm clover preduced herewego reduced reduced2 spiral2 recycle2 recycle3 shirt shuttle spiral splinter elegant shuttle2 shirt2 windmill paper shuttle5 shirtDouble splinter2 reduced3 elegant2'.split()
 
@@ -17,7 +17,7 @@ def level(n):
             directions = {}
             arrows = []
             return f()
-        levels.append(inner())
+        levels[f.__name__] = inner()
     return decorate
 
 def goal(x, y, c):
@@ -563,3 +563,6 @@ def elegant2():
     square(0, 4, colors[3], 'right')
     square(1, 4, colors[0], 'right')
     return flush()
+
+hidden_levels = sorted([v for k, v in levels.items() if k not in orig_levels], key=lambda v: v['name'])
+levels = [levels[l] for l in orig_levels] + hidden_levels
