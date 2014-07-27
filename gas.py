@@ -8,6 +8,8 @@ class Pos:
         self.y = y
     def __add__(self, other):
         return Pos(self.x + other.x, self.y + other.y)
+    def __hash__(self):
+        return hash((self.x, self.y))
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y
 
@@ -149,7 +151,9 @@ def search(state, ply, depth):
     elif depth == 0:
         return eval_state(state), []
 
-    # XXX if state in hash_table:
+    hash_key = (state, depth)
+    if hash_key in hash_table:
+        return hash_table[hash_key]
 
     best_score, best_moves = -1000, None
     for color in state.colors:
@@ -160,7 +164,7 @@ def search(state, ply, depth):
             best_moves = [color] + moves
         state.undo(undo)
 
-    # XXX store hash
+    hash_table[hash_key] = best_score, best_moves
 
     return best_score, best_moves
 
@@ -176,7 +180,8 @@ for level in levels.levels:
     #state.print()
 
     nodes = 0
-    for depth in range(1, 20):
+    hash_table = {}
+    for depth in range(1, 40):
         score, moves = search(state, 0, depth)
         # XXX
         if score > 0:
