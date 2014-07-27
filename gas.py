@@ -37,7 +37,7 @@ inv_dir_str = {v: k for k, v in dir_str.items()}
 
 class State:
     def __init__(self, positions, directions, goals, arrows):
-        self.colors = list(positions.keys())
+        self.colors = list(sorted(positions.keys()))
         self.positions = positions
         self.directions = directions
         self.goals = goals
