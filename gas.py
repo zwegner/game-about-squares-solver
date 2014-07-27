@@ -80,38 +80,26 @@ class State:
         return None
 
     def move(self, color):
-        # Save off undo information
-        undo_pos, undo_dir = [], []
+        self = State(self.positions.copy(), self.directions.copy(), self.goals, self.arrows)
 
         # Push all squares in front of this one
         d = dir_vector[self.directions[color]]
         p = self.positions[color]
-        undo_pos.append([color, p])
         new_pos = p + d
         while True:
             new_color = self.lookup_square(new_pos)
+
             self.positions[color] = new_pos
+            a = self.lookup_arrow(new_pos)
+            if a is not None:
+                self.directions[color] = a
+
             color = new_color
             if color is None:
                 break
-            undo_pos.append([color, new_pos])
             new_pos = new_pos + d
 
-        # Go through and change their directions if they are on top of arrows
-        for c, p in undo_pos:
-            a = self.lookup_arrow(self.positions[c])
-            if a is not None:
-                undo_dir.append([c, self.directions[c]])
-                self.directions[c] = a
-
-        return undo_pos, undo_dir
-
-    def undo(self, undo_info):
-        undo_pos, undo_dir = undo_info
-        for c, p in undo_pos:
-            self.positions[c] = p
-        for c, d in undo_dir:
-            self.directions[c] = d
+        return self
 
     def print(self):
         all_features = list(self.positions.values()) + list(self.goals.values()) + [a[0] for a in self.arrows]
@@ -160,13 +148,8 @@ def eval_state(state):
 
 def order_colors(state, depth):
     # Sort the different possible moves by making them and then evaluating the position
-    scores = {}
-    for color in state.colors:
-        undo = state.move(color)
-        score = eval_state(state)
-        scores[color] = score
-        state.undo(undo)
-    return sorted(state.colors, key=lambda c: -scores[c])
+    new_states = [[color, state.move(color)] for color in state.colors]
+    return sorted(new_states, key=lambda s: -eval_state(s[1]))
 
 def search(state, ply, depth):
     global nodes, hash_table
@@ -181,13 +164,11 @@ def search(state, ply, depth):
         return hash_table[hash_key]
 
     best_score, best_moves = -1000, None
-    for rank, color in enumerate(order_colors(state, depth)):
-        undo = state.move(color)
-        score, moves = search(state, ply + 1, depth - rank ** 2 - 1)
+    for rank, [color, new_state] in enumerate(order_colors(state, depth)):
+        score, moves = search(new_state, ply + 1, depth - rank ** 2 - 1)
         if score > best_score:
             best_score = score
             best_moves = [color] + moves
-        state.undo(undo)
 
     hash_table[hash_key] = best_score, best_moves
 
